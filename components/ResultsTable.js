@@ -129,7 +129,7 @@ export default function ResultsTable({ quizId }) {
                 </td>
                 <td className="py-2 pr-4 text-gray-500">{fmt(a.startedAt)}</td>
                 <td className="py-2 pr-4">
-                  <Link href={`/admin/quiz/${quizId}/results/${a._id}`} className="text-brand-600">
+                  <Link href={`/teacher/quiz/${quizId}/results/${a._id}`} className="text-brand-600">
                     View →
                   </Link>
                 </td>

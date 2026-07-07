@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { requireAdmin } from '@/lib/apiAuth';
+import { requireUser, unauthorized, forbidden } from '@/lib/apiAuth';
 import Quiz from '@/models/Quiz';
 import Question from '@/models/Question';
 
 export async function GET(request) {
-  const admin = requireAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireUser(request, { roles: ['teacher'] });
+  if (!user) return unauthorized();
 
   await connectDB();
-  const quizzes = await Quiz.find({ createdBy: admin.adminId }).sort({ createdAt: -1 }).lean();
+  const quizzes = await Quiz.find({ createdBy: user._id }).sort({ createdAt: -1 }).lean();
   return NextResponse.json({ quizzes });
 }
 
 export async function POST(request) {
-  const admin = requireAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireUser(request, { roles: ['teacher'] });
+  if (!user) return unauthorized();
 
   const body = await request.json();
   const { questions = [], ...quizFields } = body;
@@ -26,9 +26,18 @@ export async function POST(request) {
 
   await connectDB();
 
+  // Free-tier protection: enforce the per-teacher quiz cap set by the super admin.
+  const maxQuizzes = user.limits?.maxQuizzes ?? 10;
+  const existingCount = await Quiz.countDocuments({ createdBy: user._id });
+  if (existingCount >= maxQuizzes) {
+    return forbidden(
+      `You've reached your limit of ${maxQuizzes} quizzes. Contact the platform admin to increase it.`
+    );
+  }
+
   const quiz = await Quiz.create({
     ...quizFields,
-    createdBy: admin.adminId,
+    createdBy: user._id,
     status: 'draft',
   });
 

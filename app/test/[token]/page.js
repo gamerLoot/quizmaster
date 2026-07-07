@@ -30,28 +30,37 @@ export default async function TestRulesPage({ params }) {
     return <StatusScreen title="Test link expired" message="This test is no longer accepting attempts." />;
   }
 
+  const rules = [
+    { icon: '🖥️', text: 'The test will open in fullscreen mode — do not exit fullscreen.' },
+    { icon: '👁️', text: 'Switching tabs, minimizing the window, copy/paste, and right-click are monitored and logged.' },
+    { icon: '⚠️', text: 'Repeated violations will auto-submit your test.' },
+    { icon: '⏱️', text: 'The timer is set by your instructor and cannot be paused — once started it keeps running.' },
+    { icon: '📶', text: 'Make sure you have a stable internet connection before starting.' },
+  ];
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-10">
-      <div className="card max-w-lg w-full space-y-5">
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
+      <div className="card max-w-lg w-full space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{quiz.title}</h1>
           {quiz.description && <p className="text-gray-600 mt-2">{quiz.description}</p>}
         </div>
 
-        <div className="bg-brand-50 rounded-lg p-4 text-sm space-y-1">
-          <p>⏱️ Duration: <b>{quiz.durationMinutes} minutes</b></p>
-          <p>✅ Passing score: <b>{quiz.passPercent}%</b></p>
-          <p>🔁 Attempts allowed: <b>{quiz.maxAttempts}</b></p>
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard label="Duration" value={`${quiz.durationMinutes} min`} />
+          <StatCard label="Pass mark" value={`${quiz.passPercent}%`} />
+          <StatCard label="Attempts" value={quiz.maxAttempts} />
         </div>
 
-        <div className="space-y-2 text-sm text-gray-700">
-          <p className="font-semibold">Please read before you start:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>The test will open in fullscreen mode — do not exit fullscreen.</li>
-            <li>Switching tabs, minimizing the window, copy/paste, and right-click are monitored and logged.</li>
-            <li>Repeated violations will auto-submit your test.</li>
-            <li>The timer is set by your instructor and cannot be paused — once started it keeps running.</li>
-            <li>Make sure you have a stable internet connection before starting.</li>
+        <div>
+          <p className="font-semibold text-sm mb-3">Please read before you start</p>
+          <ul className="space-y-2.5">
+            {rules.map((r, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
+                <span className="text-base leading-none mt-0.5">{r.icon}</span>
+                <span>{r.text}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -63,9 +72,18 @@ export default async function TestRulesPage({ params }) {
   );
 }
 
+function StatCard({ label, value }) {
+  return (
+    <div className="bg-brand-50 rounded-lg py-3 px-2 text-center">
+      <p className="text-lg font-bold text-brand-700">{value}</p>
+      <p className="text-[11px] text-brand-600/70 mt-0.5">{label}</p>
+    </div>
+  );
+}
+
 function StatusScreen({ title, message }) {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="card max-w-md text-center">
         <h1 className="text-xl font-bold mb-2">{title}</h1>
         <p className="text-gray-600">{message}</p>

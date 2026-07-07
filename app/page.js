@@ -8,9 +8,14 @@ export default function HomePage() {
         Create MCQ tests, share a link with students anywhere in the world, and monitor
         their attempts live — 100% free.
       </p>
-      <Link href="/admin/login" className="btn-primary">
-        Admin Login
-      </Link>
+      <div className="flex gap-3">
+        <Link href="/login" className="btn-primary">
+          Teacher Login
+        </Link>
+        <Link href="/signup" className="btn-secondary">
+          Create Account
+        </Link>
+      </div>
     </main>
   );
 }

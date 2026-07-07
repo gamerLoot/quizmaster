@@ -191,7 +191,7 @@ export default function QuizForm({ mode, quizId, initialQuiz, initialQuestions }
         return;
       }
       const savedId = mode === 'edit' ? quizId : data.quiz._id;
-      router.push(`/admin/quiz/${savedId}`);
+      router.push(`/teacher/quiz/${savedId}`);
       router.refresh();
     } catch (err) {
       setError('Something went wrong');

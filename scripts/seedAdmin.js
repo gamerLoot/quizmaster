@@ -5,32 +5,65 @@ const bcrypt = require('bcryptjs');
 
 async function main() {
   const uri = process.env.MONGODB_URI;
-  const email = process.env.ADMIN_EMAIL;
-  const password = process.env.ADMIN_PASSWORD;
+  const name = process.env.SUPER_ADMIN_NAME;
+  const email = process.env.SUPER_ADMIN_EMAIL;
+  const password = process.env.SUPER_ADMIN_PASSWORD;
 
-  if (!uri || !email || !password) {
-    console.error('MONGODB_URI, ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env.local');
+  if (!uri || !name || !email || !password) {
+    console.error(
+      'MONGODB_URI, SUPER_ADMIN_NAME, SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD must be set in .env.local'
+    );
+    process.exit(1);
+  }
+  if (password.length < 8) {
+    console.error('SUPER_ADMIN_PASSWORD must be at least 8 characters.');
     process.exit(1);
   }
 
   await mongoose.connect(uri);
 
-  const AdminSchema = new mongoose.Schema(
-    { email: String, passwordHash: String },
+  // Minimal inline schema mirroring models/User.js — kept standalone so this script
+  // has no dependency on Next.js path aliases and can run with plain `node`.
+  const UserSchema = new mongoose.Schema(
+    {
+      name: String,
+      email: { type: String, unique: true, lowercase: true, trim: true },
+      phone: { type: String, default: '' },
+      passwordHash: String,
+      role: { type: String, enum: ['super_admin', 'teacher'], default: 'teacher' },
+      status: { type: String, enum: ['active', 'suspended'], default: 'active' },
+      limits: {
+        maxQuizzes: { type: Number, default: 10 },
+        maxAttemptsPerQuiz: { type: Number, default: 200 },
+      },
+      mustChangePassword: { type: Boolean, default: false },
+      lastLoginAt: { type: Date, default: null },
+    },
     { timestamps: true }
   );
-  const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
+  const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const existing = await Admin.findOne({ email: email.toLowerCase() });
+  const passwordHash = await bcrypt.hash(password, 12);
+  const normalizedEmail = email.toLowerCase().trim();
+  const existing = await User.findOne({ email: normalizedEmail });
 
   if (existing) {
+    existing.name = name;
     existing.passwordHash = passwordHash;
+    existing.role = 'super_admin';
+    existing.status = 'active';
+    existing.mustChangePassword = false;
     await existing.save();
-    console.log(`Updated existing admin: ${email}`);
+    console.log(`Updated existing super admin: ${normalizedEmail}`);
   } else {
-    await Admin.create({ email: email.toLowerCase(), passwordHash });
-    console.log(`Created admin: ${email}`);
+    await User.create({
+      name,
+      email: normalizedEmail,
+      passwordHash,
+      role: 'super_admin',
+      status: 'active',
+    });
+    console.log(`Created super admin: ${normalizedEmail}`);
   }
 
   await mongoose.disconnect();

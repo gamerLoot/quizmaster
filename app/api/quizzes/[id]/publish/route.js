@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { connectDB } from '@/lib/db';
-import { requireAdmin } from '@/lib/apiAuth';
+import { requireUser, unauthorized } from '@/lib/apiAuth';
 import Quiz from '@/models/Quiz';
 import Question from '@/models/Question';
 
 export async function POST(request, { params }) {
-  const admin = requireAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireUser(request, { roles: ['teacher'] });
+  if (!user) return unauthorized();
 
   await connectDB();
-  const quiz = await Quiz.findOne({ _id: params.id, createdBy: admin.adminId });
+  const quiz = await Quiz.findOne({ _id: params.id, createdBy: user._id });
   if (!quiz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const body = await request.json().catch(() => ({}));

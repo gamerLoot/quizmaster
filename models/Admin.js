@@ -1,3 +1,7 @@
+// DEPRECATED: superseded by models/User.js (multi-teacher + super_admin roles).
+// Kept only so this file isn't dangling; nothing in the app imports it anymore.
+// Not deleted because file deletion isn't permitted in this environment — safe to
+// remove by hand once you've confirmed the User migration is fully deployed.
 import mongoose from 'mongoose';
 
 const AdminSchema = new mongoose.Schema(

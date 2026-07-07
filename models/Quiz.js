@@ -16,7 +16,7 @@ const QuizSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
 
     durationMinutes: { type: Number, required: true, default: 30 },
     startAt: { type: Date, default: null }, // link becomes active from this time

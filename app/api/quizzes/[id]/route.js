@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { requireAdmin } from '@/lib/apiAuth';
+import { requireUser, unauthorized } from '@/lib/apiAuth';
 import Quiz from '@/models/Quiz';
 import Question from '@/models/Question';
 import Attempt from '@/models/Attempt';
 
 export async function GET(request, { params }) {
-  const admin = requireAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireUser(request, { roles: ['teacher'] });
+  if (!user) return unauthorized();
 
   await connectDB();
-  const quiz = await Quiz.findOne({ _id: params.id, createdBy: admin.adminId }).lean();
+  const quiz = await Quiz.findOne({ _id: params.id, createdBy: user._id }).lean();
   if (!quiz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const questions = await Question.find({ quizId: params.id }).sort({ order: 1 }).lean();
@@ -18,14 +18,14 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const admin = requireAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireUser(request, { roles: ['teacher'] });
+  if (!user) return unauthorized();
 
   const body = await request.json();
   const { questions, ...quizFields } = body;
 
   await connectDB();
-  const quiz = await Quiz.findOne({ _id: params.id, createdBy: admin.adminId });
+  const quiz = await Quiz.findOne({ _id: params.id, createdBy: user._id });
   if (!quiz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   Object.assign(quiz, quizFields);
@@ -43,11 +43,11 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const admin = requireAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireUser(request, { roles: ['teacher'] });
+  if (!user) return unauthorized();
 
   await connectDB();
-  const quiz = await Quiz.findOne({ _id: params.id, createdBy: admin.adminId });
+  const quiz = await Quiz.findOne({ _id: params.id, createdBy: user._id });
   if (!quiz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   await Promise.all([

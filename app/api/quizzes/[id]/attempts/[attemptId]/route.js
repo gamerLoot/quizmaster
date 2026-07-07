@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
-import { requireAdmin } from '@/lib/apiAuth';
+import { requireUser, unauthorized } from '@/lib/apiAuth';
 import Quiz from '@/models/Quiz';
 import Question from '@/models/Question';
 import Attempt from '@/models/Attempt';
 import { mapToObject } from '@/lib/serialize';
 
 export async function GET(request, { params }) {
-  const admin = requireAdmin(request);
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await requireUser(request, { roles: ['teacher'] });
+  if (!user) return unauthorized();
 
   await connectDB();
-  const quiz = await Quiz.findOne({ _id: params.id, createdBy: admin.adminId }).lean();
+  const quiz = await Quiz.findOne({ _id: params.id, createdBy: user._id }).lean();
   if (!quiz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const attempt = await Attempt.findOne({ _id: params.attemptId, quizId: params.id }).lean();

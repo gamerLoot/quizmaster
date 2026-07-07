@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import Quiz from '@/models/Quiz';
 import Question from '@/models/Question';
 import Attempt from '@/models/Attempt';
+import User from '@/models/User';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -18,6 +19,13 @@ export async function POST(request, { params }) {
   const quiz = await Quiz.findOne({ linkToken: params.token });
   if (!quiz) return NextResponse.json({ error: 'Invalid test link.' }, { status: 404 });
 
+  // A suspended teacher's quizzes stop accepting new attempts immediately,
+  // even if the quiz itself is still marked "published".
+  const owner = await User.findById(quiz.createdBy).select('status limits').lean();
+  if (!owner || owner.status !== 'active') {
+    return NextResponse.json({ error: 'This test is not currently open.' }, { status: 403 });
+  }
+
   const now = new Date();
   if (quiz.status !== 'published') {
     return NextResponse.json({ error: 'This test is not currently open.' }, { status: 403 });
@@ -27,6 +35,17 @@ export async function POST(request, { params }) {
   }
   if (quiz.endAt && now > quiz.endAt) {
     return NextResponse.json({ error: 'This test link has expired.' }, { status: 403 });
+  }
+
+  // Free-tier protection: cap total attempts recorded against this quiz, based on
+  // its owning teacher's plan limit — independent of the per-student maxAttempts.
+  const maxAttemptsPerQuiz = owner.limits?.maxAttemptsPerQuiz ?? 200;
+  const totalAttemptsForQuiz = await Attempt.countDocuments({ quizId: quiz._id });
+  if (totalAttemptsForQuiz >= maxAttemptsPerQuiz) {
+    return NextResponse.json(
+      { error: 'This test has reached its maximum number of attempts. Contact the test creator.' },
+      { status: 403 }
+    );
   }
 
   const body = await request.json().catch(() => ({}));

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Quiz from '@/models/Quiz';
+import User from '@/models/User';
 
 export async function GET(request, { params }) {
   await connectDB();
@@ -9,7 +10,12 @@ export async function GET(request, { params }) {
 
   const now = new Date();
   let state = 'active';
-  if (quiz.status !== 'published') state = 'closed';
+
+  // If the owning teacher's account has been suspended, treat the link as closed
+  // immediately — regardless of the quiz's own status/dates.
+  const owner = await User.findById(quiz.createdBy).select('status').lean();
+  if (!owner || owner.status !== 'active') state = 'closed';
+  else if (quiz.status !== 'published') state = 'closed';
   else if (quiz.startAt && now < new Date(quiz.startAt)) state = 'not_started';
   else if (quiz.endAt && now > new Date(quiz.endAt)) state = 'expired';
 
